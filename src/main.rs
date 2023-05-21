@@ -38,8 +38,8 @@ fn calc_img_hash(
 
     match image::open(img_path) {
         Ok(image) => {
-            let hash = hasher.hash_image(&image).to_base64();
-            println!("{} {} │ {}", "[CALC]".cyan(), hash, img_path);
+            let hash = base64_url::encode(hasher.hash_image(&image).as_bytes());
+            println!("{} {} {}", "[CALC]".cyan(), hash, img_path);
             img_hash_path_chan_sender
                 .send((hash, img_path.clone()))
                 .unwrap();
