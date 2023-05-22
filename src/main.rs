@@ -8,11 +8,11 @@ use std::ffi::OsStr;
 use std::ops::ControlFlow;
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{env, fs, thread, vec};
 
-fn map_dir(img_paths: &Arc<SegQueue<String>>, path: &Path) -> Result<()> {
-    for entry in fs::read_dir(path)? {
+fn find_img(img_paths: &Arc<SegQueue<String>>, root_path: &Path) -> Result<()> {
+    for entry in fs::read_dir(root_path)? {
         let path = entry?.path();
 
         if path
@@ -22,79 +22,86 @@ fn map_dir(img_paths: &Arc<SegQueue<String>>, path: &Path) -> Result<()> {
         {
             img_paths.push(format!("{}", path.display()))
         } else if path.is_dir() {
-            map_dir(img_paths, path.as_path())?;
+            find_img(img_paths, path.as_path())?;
         }
     }
 
     Ok(())
 }
 
-fn calc_img_hash(
-    img_path: &String,
-    img_hash_path_chan_sender: &Sender<(String, String)>,
-    img_err_paths: &Arc<Mutex<Vec<String>>>,
-) {
+fn calc_img_hash(img_path: &String, img_hash_result_tx: &Sender<Result<(String, String), String>>) {
     let hasher = HasherConfig::new().to_hasher();
 
-    match image::open(img_path) {
-        Ok(image) => {
-            let hash = base64_url::encode(hasher.hash_image(&image).as_bytes());
+    let result = match image::open(img_path) {
+        Ok(img) => {
+            let hash = base64_url::encode(hasher.hash_image(&img).as_bytes());
             println!("{} {} {}", "[CALC]".cyan(), hash, img_path);
-            img_hash_path_chan_sender
-                .send((hash, img_path.clone()))
-                .unwrap();
+            Ok((hash, img_path.clone()))
         }
-        Err(_) => img_err_paths.lock().unwrap().push(img_path.clone()),
-    }
+        Err(e) => {
+            println!(
+                "{} Failed to open image: {} [{}]",
+                "[ERR]".red(),
+                img_path,
+                e
+            );
+            Err(img_path.clone())
+        }
+    };
+
+    img_hash_result_tx.send(result).unwrap()
 }
 
 fn main() -> Result<()> {
-    let mut args = env::args();
-    args.next();
-    let path_arg = args.next().unwrap();
-    let path = Path::new(path_arg.as_str());
+    let root_path = {
+        let mut args = env::args();
+        args.next();
+        args.next().unwrap()
+    };
 
     let img_paths = Arc::new(SegQueue::new());
-    let err_img_paths = Arc::new(Mutex::new(vec![]));
-    let (img_hash_path_chan_sender, img_hash_chan_recv) = channel();
+    let (img_hash_result_tx, img_hash_result_rx) = channel();
 
-    map_dir(&img_paths, path)?;
+    find_img(&img_paths, Path::new(&root_path))?;
 
     let mut workers = vec![];
     for _ in 0..num_cpus::get() {
         let img_paths = img_paths.clone();
-        let err_img_paths = err_img_paths.clone();
-        let img_hash_path_chan_sender = img_hash_path_chan_sender.clone();
+        let img_hash_result_tx = img_hash_result_tx.clone();
         let worker = thread::spawn(move || {
             while let Some(img_path) = img_paths.pop() {
-                calc_img_hash(&img_path, &img_hash_path_chan_sender, &err_img_paths);
+                calc_img_hash(&img_path, &img_hash_result_tx);
             }
         });
         workers.push(worker);
     }
-    drop(img_hash_path_chan_sender);
+    drop(img_hash_result_tx);
 
-    let mut img_hash_map = HashMap::new();
-    for (hash, path) in img_hash_chan_recv {
-        (*img_hash_map.entry(hash).or_insert(vec![])).push(path);
-    }
-    let mut dup_img_hash_paths = HashMap::new();
-    img_hash_map.iter().for_each(|(hash, vec)| {
-        if vec.len() > 1 {
-            dup_img_hash_paths.insert(hash, vec);
+    let (dup_img_hash_paths, err_img_paths) = {
+        let mut err_img_paths = vec![];
+        let mut img_hash_map = HashMap::new();
+
+        for result in img_hash_result_rx {
+            match result {
+                Ok((hash, path)) => (*img_hash_map.entry(hash).or_insert(vec![])).push(path),
+                Err(msg) => err_img_paths.push(msg),
+            }
         }
+        img_hash_map.retain(|_, vec| vec.len() > 1);
+
+        (img_hash_map, err_img_paths)
+    };
+    workers.into_iter().for_each(|worker| {
+        worker.join().unwrap();
     });
-    for worker in workers {
-        let _ = worker.join();
-    }
 
     println!();
 
     let mut err_count = 0_usize;
-    if !err_img_paths.lock().unwrap().is_empty() {
+    if !err_img_paths.is_empty() {
         fs::create_dir_all("err")?;
         println!("{} Image format errors:", "[ERR]".red());
-        err_img_paths.lock().unwrap().iter().for_each(|path| {
+        err_img_paths.iter().for_each(|path| {
             println!("{}", path);
 
             if let Err(e) = std::os::unix::fs::symlink(path, format!("err/{}", err_count)) {
@@ -119,6 +126,7 @@ fn main() -> Result<()> {
     }
 
     let mut group_mark = '░';
+    let count_align = dup_img_hash_paths.len().to_string().len();
     let mut dup_count = 0_usize;
     if !dup_img_hash_paths.is_empty() {
         fs::create_dir_all("dup")?;
@@ -127,25 +135,19 @@ fn main() -> Result<()> {
             .iter()
             .filter(|(_, vec)| vec.len() > 1)
             .try_for_each(|(hash, vec)| {
-                if let Err(e) = fs::create_dir_all(format!("dup/{}", hash)) {
-                    println!("{} Failed to create dir: {} ({})", "[ERR]".red(), hash, e);
-                    return ControlFlow::<()>::Continue(());
-                }
-
                 vec.iter().for_each(|path| {
-                    println!("{group_mark} {}", path);
+                    println!("{dup_count:>count_align$} {group_mark} {}", path);
 
                     if let Err(e) =
-                        std::os::unix::fs::symlink(path, format!("dup/{}/{}", hash, dup_count))
+                        std::os::unix::fs::symlink(path, format!("dup/{}-{}", hash, dup_count))
                     {
                         println!(
-                            "{group_mark} {} Failed to create symlink for: {} [{}]",
+                            "{dup_count:>count_align$} {group_mark} {} Failed to create symlink for: {} [{}]",
                             "[ERR]".red(),
                             path,
                             e
                         );
                     }
-
                     dup_count += 1;
                 });
 
@@ -155,7 +157,7 @@ fn main() -> Result<()> {
                     group_mark = '▓'
                 }
 
-                ControlFlow::Continue(())
+                ControlFlow::<()>::Continue(())
             });
 
         println!();
