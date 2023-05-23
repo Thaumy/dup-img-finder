@@ -1,56 +1,20 @@
-use anyhow::Result;
-use std::collections::HashMap;
+mod calc_img_hash;
+mod find_img;
 
-use colored::Colorize;
-use crossbeam::queue::SegQueue;
-use image_hasher::HasherConfig;
-use std::ffi::OsStr;
+use std::collections::HashMap;
 use std::ops::ControlFlow;
+use std::os::unix::fs::symlink as unix_symlink;
 use std::path::Path;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::{env, fs, thread, vec};
 
-fn find_img(img_paths: &Arc<SegQueue<String>>, root_path: &Path) -> Result<()> {
-    for entry in fs::read_dir(root_path)? {
-        let path = entry?.path();
+use anyhow::Result;
+use colored::Colorize;
+use crossbeam::queue::SegQueue;
 
-        if path
-            .extension()
-            .map(|ext| ext.to_ascii_lowercase())
-            .is_some_and(|ext| ext == OsStr::new("png") || ext == OsStr::new("jpg"))
-        {
-            img_paths.push(format!("{}", path.display()))
-        } else if path.is_dir() {
-            find_img(img_paths, path.as_path())?;
-        }
-    }
-
-    Ok(())
-}
-
-fn calc_img_hash(img_path: &String, img_hash_result_tx: &Sender<Result<(String, String), String>>) {
-    let hasher = HasherConfig::new().to_hasher();
-
-    let result = match image::open(img_path) {
-        Ok(img) => {
-            let hash = base64_url::encode(hasher.hash_image(&img).as_bytes());
-            println!("{} {} {}", "[CALC]".cyan(), hash, img_path);
-            Ok((hash, img_path.clone()))
-        }
-        Err(e) => {
-            println!(
-                "{} Failed to open image: {} [{}]",
-                "[ERR]".red(),
-                img_path,
-                e
-            );
-            Err(img_path.clone())
-        }
-    };
-
-    img_hash_result_tx.send(result).unwrap()
-}
+use crate::calc_img_hash::calc_img_hash;
+use crate::find_img::find_img;
 
 fn main() -> Result<()> {
     let root_path = {
@@ -70,7 +34,7 @@ fn main() -> Result<()> {
         let img_hash_result_tx = img_hash_result_tx.clone();
         let worker = thread::spawn(move || {
             while let Some(img_path) = img_paths.pop() {
-                calc_img_hash(&img_path, &img_hash_result_tx);
+                calc_img_hash(img_path, &img_hash_result_tx);
             }
         });
         workers.push(worker);
@@ -83,17 +47,22 @@ fn main() -> Result<()> {
 
         for result in img_hash_result_rx {
             match result {
-                Ok((hash, path)) => (*img_hash_map.entry(hash).or_insert(vec![])).push(path),
-                Err(msg) => err_img_paths.push(msg),
+                Ok((hash, path)) => (*img_hash_map
+                    .entry(hash)
+                    .or_insert(vec![]))
+                .push(path),
+                Err(msg) => err_img_paths.push(msg)
             }
         }
         img_hash_map.retain(|_, vec| vec.len() > 1);
 
         (img_hash_map, err_img_paths)
     };
-    workers.into_iter().for_each(|worker| {
-        worker.join().unwrap();
-    });
+    workers
+        .into_iter()
+        .for_each(|worker| {
+            worker.join().unwrap();
+        });
 
     println!();
 
@@ -101,20 +70,25 @@ fn main() -> Result<()> {
     if !err_img_paths.is_empty() {
         fs::create_dir_all("err")?;
         println!("{} Image format errors:", "[ERR]".red());
-        err_img_paths.iter().for_each(|path| {
-            println!("{}", path);
+        err_img_paths
+            .iter()
+            .for_each(|path| {
+                println!("{}", path);
 
-            if let Err(e) = std::os::unix::fs::symlink(path, format!("err/{}", err_count)) {
-                println!(
-                    "{} Failed to create symlink for: {} [{}]",
-                    "[ERR]".red(),
-                    path,
-                    e
-                );
-            }
+                if let Err(e) = unix_symlink(
+                    path.as_str(),
+                    format!("err/{}", err_count)
+                ) {
+                    println!(
+                        "{} Failed to create symlink for: {} [{}]",
+                        "[ERR]".red(),
+                        path,
+                        e
+                    );
+                }
 
-            err_count += 1;
-        });
+                err_count += 1;
+            });
 
         println!();
         println!(
@@ -126,7 +100,10 @@ fn main() -> Result<()> {
     }
 
     let mut group_mark = '░';
-    let count_align = dup_img_hash_paths.len().to_string().len();
+    let count_align = dup_img_hash_paths
+        .len()
+        .to_string()
+        .len();
     let mut dup_count = 0_usize;
     if !dup_img_hash_paths.is_empty() {
         fs::create_dir_all("dup")?;
@@ -138,9 +115,10 @@ fn main() -> Result<()> {
                 vec.iter().for_each(|path| {
                     println!("{dup_count:>count_align$} {group_mark} {}", path);
 
-                    if let Err(e) =
-                        std::os::unix::fs::symlink(path, format!("dup/{}-{}", hash, dup_count))
-                    {
+                    if let Err(e) = unix_symlink(
+                        path.as_str(),
+                        format!("dup/{}-{}", base64_url::encode(hash), dup_count),
+                    ) {
                         println!(
                             "{dup_count:>count_align$} {group_mark} {} Failed to create symlink for: {} [{}]",
                             "[ERR]".red(),
