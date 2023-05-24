@@ -7,9 +7,7 @@ use image_hasher::HasherConfig;
 #[inline]
 pub fn calc_img_hash(
     img_path: String,
-    img_hash_result_tx: &Sender<
-        Result<(Box<[u8]>, String), String>
-    >
+    img_hash_result_tx: &Sender<Result<(Box<[u8]>, String), String>>
 ) {
     let hasher = HasherConfig::new().to_hasher();
 

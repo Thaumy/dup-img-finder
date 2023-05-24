@@ -8,7 +8,10 @@ use crossbeam::queue::SegQueue;
 
 #[inline]
 fn is_img_ext(ext: OsString) -> bool {
-    ext == OsStr::new("png") || ext == OsStr::new("jpg")
+    let supported_format = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
+    supported_format
+        .into_iter()
+        .any(|format| ext == OsStr::new(format))
 }
 
 pub fn find_img(
