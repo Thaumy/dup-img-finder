@@ -1,3 +1,4 @@
+mod args;
 mod calc_img_hash;
 mod find_img;
 
@@ -10,26 +11,30 @@ use std::sync::Arc;
 use std::{env, fs, thread, vec};
 
 use anyhow::Result;
+use clap::Parser;
 use colored::Colorize;
 use crossbeam::queue::SegQueue;
 
+use crate::args::Args;
 use crate::calc_img_hash::calc_img_hash;
 use crate::find_img::find_img;
 
 fn main() -> Result<()> {
-    let root_path = {
-        let mut args = env::args();
-        args.next();
-        args.next().unwrap()
-    };
+    let args = Args::parse();
+
+    let input_path: String = args.input_path;
+    let output_path: String = args.output_path;
+    let threads: usize = args
+        .threads
+        .unwrap_or(num_cpus::get());
 
     let img_paths = Arc::new(SegQueue::new());
     let (img_hash_result_tx, img_hash_result_rx) = channel();
 
-    find_img(&img_paths, Path::new(&root_path))?;
+    find_img(&img_paths, Path::new(&input_path))?;
 
     let mut workers = vec![];
-    for _ in 0..num_cpus::get() {
+    for _ in 0..threads {
         let img_paths = img_paths.clone();
         let img_hash_result_tx = img_hash_result_tx.clone();
         let worker = thread::spawn(move || {
@@ -68,7 +73,7 @@ fn main() -> Result<()> {
 
     let mut err_count = 0_usize;
     if !err_img_paths.is_empty() {
-        fs::create_dir_all("err")?;
+        fs::create_dir_all(format!("{}/err", output_path))?;
         println!("{} Image format errors:", "[ERR]".red());
         err_img_paths
             .iter()
@@ -77,7 +82,7 @@ fn main() -> Result<()> {
 
                 if let Err(e) = unix_symlink(
                     path.as_str(),
-                    format!("err/{}", err_count)
+                    format!("{}/err/{}", output_path, err_count)
                 ) {
                     println!(
                         "{} Failed to create symlink for: {} [{}]",
@@ -106,7 +111,7 @@ fn main() -> Result<()> {
         .len();
     let mut dup_count = 0_usize;
     if !dup_img_hash_paths.is_empty() {
-        fs::create_dir_all("dup")?;
+        fs::create_dir_all(format!("{}/dup", output_path))?;
         println!("{} Duplicate images:", "[DUP]".yellow());
         dup_img_hash_paths
             .iter()
@@ -117,7 +122,7 @@ fn main() -> Result<()> {
 
                     if let Err(e) = unix_symlink(
                         path.as_str(),
-                        format!("dup/{}-{}", base64_url::encode(hash), dup_count),
+                        format!("{}/dup/{}-{}", output_path, base64_url::encode(hash), dup_count),
                     ) {
                         println!(
                             "{dup_count:>count_align$} {group_mark} {} Failed to create symlink for: {} [{}]",

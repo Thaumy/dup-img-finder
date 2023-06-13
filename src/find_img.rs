@@ -8,7 +8,8 @@ use crossbeam::queue::SegQueue;
 
 #[inline]
 fn is_img_ext(ext: OsString) -> bool {
-    let supported_format = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
+    let supported_format =
+        ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
     supported_format
         .into_iter()
         .any(|format| ext == OsStr::new(format))
@@ -16,7 +17,7 @@ fn is_img_ext(ext: OsString) -> bool {
 
 pub fn find_img(
     img_paths: &Arc<SegQueue<String>>,
-    root_path: &Path,
+    root_path: &Path
 ) -> Result<()> {
     for entry in fs::read_dir(root_path)? {
         let path = entry?.path();
