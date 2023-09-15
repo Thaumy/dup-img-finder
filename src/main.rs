@@ -149,9 +149,9 @@ fn main() -> Result<()> {
 
         println!();
         println!(
-            "{} Duplicate image symlinks was created in: {}/dup",
+            "{} Duplicate image symlinks was created in: \n{}/dup",
             "[INFO]".green(),
-            env::current_dir()?.display()
+            output_path
         );
     } else {
         println!("No duplicate images found");
