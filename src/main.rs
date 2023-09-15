@@ -3,6 +3,7 @@
 mod args;
 mod calc_img_hash;
 mod find_img;
+mod read_img;
 
 use std::collections::HashMap;
 use std::ops::ControlFlow;

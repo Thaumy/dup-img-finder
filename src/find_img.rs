@@ -28,11 +28,7 @@ pub fn find_img(
             .map(|ext| ext.to_ascii_lowercase())
             .is_some_and(is_img_ext)
         {
-            println!(
-                "{} {}",
-                "[PATH]".yellow(),
-                path.display()
-            );
+            println!("{} {}", "[PATH]".yellow(), path.display());
             img_paths.push(format!("{}", path.display()))
         } else if path.is_dir() {
             find_img(img_paths, path.as_path())?;

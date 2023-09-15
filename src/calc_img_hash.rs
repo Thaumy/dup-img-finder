@@ -3,6 +3,8 @@ use std::sync::mpsc::Sender;
 use colored::Colorize;
 use image_hasher::HasherConfig;
 
+use crate::read_img::read_img;
+
 #[inline]
 #[allow(clippy::type_complexity)]
 pub fn calc_img_hash(
@@ -11,14 +13,14 @@ pub fn calc_img_hash(
 ) {
     let hasher = HasherConfig::new().to_hasher();
 
-    let result = match image::open(img_path.as_str()) {
+    let result = match read_img(&img_path) {
         Ok(img) => {
+            println!("{} {}", "[CALC]".cyan(), img_path);
             let hash = Box::from(
                 hasher
                     .hash_image(&img)
                     .as_bytes()
             );
-            println!("{} {}", "[CALC]".cyan(), img_path);
             Ok((hash, img_path))
         }
         Err(e) => {
