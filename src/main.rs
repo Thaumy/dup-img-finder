@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::nursery, clippy::cargo_common_metadata)]
+
 mod args;
 mod calc_img_hash;
 mod find_img;
@@ -20,13 +22,13 @@ use crate::calc_img_hash::calc_img_hash;
 use crate::find_img::find_img;
 
 fn main() -> Result<()> {
-    let args = Args::parse();
+    let args: Args = Args::parse();
 
     let input_path: String = args.input_path;
     let output_path: String = args.output_path;
     let threads: usize = args
         .threads
-        .unwrap_or(num_cpus::get());
+        .unwrap_or_else(num_cpus::get);
 
     let img_paths = Arc::new(SegQueue::new());
     let (img_hash_result_tx, img_hash_result_rx) = channel();
@@ -119,10 +121,11 @@ fn main() -> Result<()> {
             .try_for_each(|(hash, vec)| {
                 vec.iter().for_each(|path| {
                     println!("{dup_count:>count_align$} {group_mark} {}", path);
+                    let file_name = path.split('/').last().unwrap();
 
                     if let Err(e) = unix_symlink(
                         path.as_str(),
-                        format!("{}/dup/{}-{}", output_path, base64_url::encode(hash), dup_count),
+                        format!("{}/dup/{}-{}-{}", output_path, base64_url::encode(hash), dup_count, file_name),
                     ) {
                         println!(
                             "{dup_count:>count_align$} {group_mark} {} Failed to create symlink for: {} [{}]",

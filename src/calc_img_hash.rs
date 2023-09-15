@@ -1,10 +1,10 @@
 use std::sync::mpsc::Sender;
 
-use anyhow::Result;
 use colored::Colorize;
 use image_hasher::HasherConfig;
 
 #[inline]
+#[allow(clippy::type_complexity)]
 pub fn calc_img_hash(
     img_path: String,
     img_hash_result_tx: &Sender<Result<(Box<[u8]>, String), String>>
