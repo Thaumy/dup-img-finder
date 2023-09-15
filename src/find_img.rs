@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
@@ -18,8 +19,13 @@ fn is_img_ext(ext: OsString) -> bool {
 
 pub fn find_img(
     img_paths: &Arc<SegQueue<String>>,
-    root_path: &Path
+    root_path: &Path,
+    ignore_paths: &HashSet<String>
 ) -> Result<()> {
+    if ignore_paths.contains(root_path.to_str().unwrap()) {
+        return Ok(());
+    }
+
     for entry in fs::read_dir(root_path)? {
         let path = entry?.path();
 
@@ -31,7 +37,7 @@ pub fn find_img(
             println!("{} {}", "[PATH]".yellow(), path.display());
             img_paths.push(format!("{}", path.display()))
         } else if path.is_dir() {
-            find_img(img_paths, path.as_path())?;
+            find_img(img_paths, path.as_path(), ignore_paths)?;
         }
     }
 
