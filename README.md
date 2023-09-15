@@ -24,7 +24,7 @@ $ cd dup-img-finder
 $ cargo build
 ```
 
-## Install over NIX
+## Install over Nix
 
 1. [Enable NUR](https://github.com/nix-community/NUR#installation)
 
