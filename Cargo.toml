@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.70"
-image-compare = "0.2.5"
-image = "0.24.6"
-image_hasher = "1.1.2"
-colored = "2.0.0"
-num_cpus = "1.15.0"
+anyhow = "1.0.75"
+image-compare = "0.3.0"
+image = "0.24.7"
+image_hasher = "1.2.0"
+colored = "2.0.4"
+num_cpus = "1.16.0"
 crossbeam = "0.8.2"
 base64-url = "2.0.0"
-clap = { version = "4.2.5", features = ["derive"] }
+clap = { version = "4.4.3", features = ["derive"] }
