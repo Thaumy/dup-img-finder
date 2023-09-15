@@ -2,7 +2,7 @@
 name = "dup-img-finder"
 version = "0.1.2"
 edition = "2021"
-description = "Duplicate image finder"
+description = "Find duplicate images by similarity"
 license = "MIT"
 repository = "https://github.com/Thaumy/dup-img-finder"
 keywords = ["image"]
