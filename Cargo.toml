@@ -8,7 +8,10 @@ repository = "https://github.com/Thaumy/dup-img-finder"
 keywords = ["image"]
 categories = ["command-line-utilities"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
 
 [dependencies]
 anyhow = "1.0.75"
@@ -20,3 +23,5 @@ num_cpus = "1.16.0"
 crossbeam = "0.8.2"
 base64-url = "2.0.0"
 clap = { version = "4.4.3", features = ["derive"] }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
