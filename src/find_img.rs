@@ -5,6 +5,7 @@ use std::path::Path;
 
 use anyhow::Result;
 use colored::Colorize;
+use regex::Regex;
 
 #[inline]
 fn is_img_ext(ext: OsString) -> bool {
@@ -18,12 +19,19 @@ fn is_img_ext(ext: OsString) -> bool {
 pub fn find_img(
     img_paths: &mut HashSet<String>,
     root_path: &Path,
-    ignore_paths: &HashSet<String>
+    ignore_abs_paths: &HashSet<String>,
+    ignore_path_regexes: &Vec<Regex>
 ) -> Result<()> {
-    // dedup
-    if ignore_paths.contains(root_path.to_str().unwrap()) {
+    if ignore_abs_paths.contains(root_path.to_str().unwrap()) {
         return Ok(());
     }
+    if ignore_path_regexes
+        .iter()
+        .any(|r| r.is_match(root_path.to_str().unwrap()))
+    {
+        return Ok(());
+    }
+
     // ignore symlink
     if root_path.is_symlink() {
         return Ok(());
@@ -49,7 +57,12 @@ pub fn find_img(
             );
             img_paths.insert(format!("{}", path.display()));
         } else if path.is_dir() {
-            find_img(img_paths, path.as_path(), ignore_paths)?;
+            find_img(
+                img_paths,
+                path.as_path(),
+                ignore_abs_paths,
+                ignore_path_regexes
+            )?;
         }
     }
 

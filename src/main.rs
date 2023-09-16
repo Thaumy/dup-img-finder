@@ -2,10 +2,11 @@
 
 mod args;
 mod calc_img_hash;
+mod cfg;
 mod find_img;
 mod fmt_path_for_display;
+mod read_cfg;
 mod read_img;
-mod read_rc;
 mod symlink_dup_files;
 mod symlink_err_files;
 
@@ -19,11 +20,12 @@ use std::{thread, vec};
 use anyhow::Result;
 use clap::Parser;
 use crossbeam::queue::SegQueue;
+use regex::Regex;
 
 use crate::args::Args;
 use crate::calc_img_hash::calc_img_hash;
 use crate::find_img::find_img;
-use crate::read_rc::read_rc;
+use crate::read_cfg::read_cfg;
 use crate::symlink_dup_files::symlink_dup_files;
 use crate::symlink_err_files::symlink_err_files;
 
@@ -36,22 +38,36 @@ fn main() -> Result<()> {
         .threads
         .unwrap_or_else(num_cpus::get);
 
-    let mut img_paths = HashSet::new();
-    let (img_hash_result_tx, img_hash_result_rx) = channel();
-
-    let ignore_paths = read_rc()?;
-    find_img(&mut img_paths, Path::new(&input_path), &ignore_paths)?;
     let img_paths = {
-        let sq =
-            img_paths
-                .into_iter()
-                .fold(SegQueue::new(), |acc, it| {
+        let mut img_paths = HashSet::new();
+
+        let cfg = read_cfg()?;
+        let ignore_abs_paths = cfg.ignore.abs_path;
+        let ignore_path_regexes = cfg
+            .ignore
+            .regex
+            .into_iter()
+            .map(|s| Regex::new(&s).unwrap())
+            .collect();
+        find_img(
+            &mut img_paths,
+            Path::new(&input_path),
+            &ignore_abs_paths,
+            &ignore_path_regexes
+        )?;
+        {
+            let sq = img_paths.into_iter().fold(
+                SegQueue::new(),
+                |acc, it| {
                     acc.push(it);
                     acc
-                });
-        Arc::new(sq)
+                }
+            );
+            Arc::new(sq)
+        }
     };
 
+    let (img_hash_result_tx, img_hash_result_rx) = channel();
     let total_img_count = img_paths.len() as f64;
     let calc_img_count = Arc::new(AtomicUsize::new(0));
 
