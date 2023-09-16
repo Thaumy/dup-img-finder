@@ -3,13 +3,15 @@
 mod args;
 mod calc_img_hash;
 mod find_img;
+mod fmt_path_for_display;
 mod read_img;
 mod read_rc;
 mod symlink_dup_files;
 mod symlink_err_files;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::{thread, vec};
@@ -34,21 +36,43 @@ fn main() -> Result<()> {
         .threads
         .unwrap_or_else(num_cpus::get);
 
-    let img_paths = Arc::new(SegQueue::new());
+    let mut img_paths = HashSet::new();
     let (img_hash_result_tx, img_hash_result_rx) = channel();
 
     let ignore_paths = read_rc()?;
-    find_img(&img_paths, Path::new(&input_path), &ignore_paths)?;
+    find_img(&mut img_paths, Path::new(&input_path), &ignore_paths)?;
+    let img_paths = {
+        let sq =
+            img_paths
+                .into_iter()
+                .fold(SegQueue::new(), |acc, it| {
+                    acc.push(it);
+                    acc
+                });
+        Arc::new(sq)
+    };
+
+    let total_img_count = img_paths.len() as f64;
+    let calc_img_count = Arc::new(AtomicUsize::new(0));
 
     let mut workers = vec![];
     for _ in 0..threads {
         let img_paths = img_paths.clone();
         let img_hash_result_tx = img_hash_result_tx.clone();
+        let calc_img_count = calc_img_count.clone();
+
         let worker = thread::spawn(move || {
             while let Some(img_path) = img_paths.pop() {
-                calc_img_hash(img_path, &img_hash_result_tx);
+                let calc_img_count = calc_img_count
+                    .fetch_add(1, Ordering::SeqCst)
+                    as f64;
+                let percent = (calc_img_count / total_img_count *
+                    100.0)
+                    .round() as usize;
+                calc_img_hash(percent, img_path, &img_hash_result_tx);
             }
         });
+
         workers.push(worker);
     }
     drop(img_hash_result_tx);
