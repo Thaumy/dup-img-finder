@@ -5,10 +5,12 @@ Find duplicate images by similarity.
 ## Usage
 
 ```bash
-./dup-img-finder /PATH/TO/IMAGE/DIR
+dup-img-finder /PATH/TO/IMAGE/DIR
 ```
 
-Currently support image formats:
+Configuration will be generated automatically in `~/dif.toml`
+
+Currently, the following image formats are supported:
 
 * GIF
 * JPG (JPEG)
@@ -19,9 +21,9 @@ Currently support image formats:
 ## Build
 
 ```bash
-$ git clone --depth 1 https://github.com/Thaumy/dup-img-finder.git
-$ cd dup-img-finder
-$ cargo build
+git clone --depth 1 https://github.com/Thaumy/dup-img-finder.git
+cd dup-img-finder
+cargo build -r
 ```
 
 ## Install over Nix
