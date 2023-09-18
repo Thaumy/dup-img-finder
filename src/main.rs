@@ -5,7 +5,6 @@ mod calc_img_hash;
 mod cfg;
 mod find_img;
 mod fmt_path_for_display;
-mod read_cfg;
 mod read_img;
 mod symlink_dup_files;
 mod symlink_err_files;
@@ -24,8 +23,8 @@ use regex::Regex;
 
 use crate::args::Args;
 use crate::calc_img_hash::calc_img_hash;
+use crate::cfg::Config;
 use crate::find_img::find_img;
-use crate::read_cfg::read_cfg;
 use crate::symlink_dup_files::symlink_dup_files;
 use crate::symlink_err_files::symlink_err_files;
 
@@ -41,7 +40,7 @@ fn main() -> Result<()> {
     let img_paths = {
         let mut img_paths = HashSet::new();
 
-        let cfg = read_cfg()?;
+        let cfg = Config::read()?;
         let ignore_abs_paths = cfg.ignore.abs_path;
         let ignore_path_regexes = cfg
             .ignore
