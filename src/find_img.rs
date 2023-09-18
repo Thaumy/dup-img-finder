@@ -9,8 +9,7 @@ use regex::Regex;
 
 #[inline]
 fn is_img_ext(ext: OsString) -> bool {
-    let supported_format =
-        ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
+    let supported_format = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
     supported_format
         .into_iter()
         .any(|format| ext == OsStr::new(format))
@@ -20,7 +19,7 @@ pub fn find_img(
     img_paths: &mut HashSet<String>,
     root_path: &Path,
     ignore_abs_paths: &HashSet<String>,
-    ignore_path_regexes: &Vec<Regex>
+    ignore_path_regexes: &Vec<Regex>,
 ) -> Result<()> {
     if ignore_abs_paths.contains(root_path.to_str().unwrap()) {
         return Ok(());
@@ -61,7 +60,7 @@ pub fn find_img(
                 img_paths,
                 path.as_path(),
                 ignore_abs_paths,
-                ignore_path_regexes
+                ignore_path_regexes,
             )?;
         }
     }

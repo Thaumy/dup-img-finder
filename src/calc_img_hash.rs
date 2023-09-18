@@ -11,24 +11,15 @@ use crate::read_img::read_img;
 pub fn calc_img_hash(
     percent: usize,
     img_path: String,
-    img_hash_result_tx: &Sender<Result<(Box<[u8]>, String), String>>
+    img_hash_result_tx: &Sender<Result<(Box<[u8]>, String), String>>,
 ) {
     let hasher = HasherConfig::new().to_hasher();
 
     let display_path = fmt_path_for_display(&img_path, 12);
     let result = match read_img(percent, &img_path) {
         Ok(img) => {
-            println!(
-                "{} {:>3}% {}",
-                "[CALC]".cyan(),
-                percent,
-                display_path
-            );
-            let hash = Box::from(
-                hasher
-                    .hash_image(&img)
-                    .as_bytes()
-            );
+            println!("{} {:>3}% {}", "[CALC]".cyan(), percent, display_path);
+            let hash = Box::from(hasher.hash_image(&img).as_bytes());
             Ok((hash, img_path))
         }
         Err(e) => {
@@ -43,7 +34,5 @@ pub fn calc_img_hash(
         }
     };
 
-    img_hash_result_tx
-        .send(result)
-        .unwrap()
+    img_hash_result_tx.send(result).unwrap()
 }

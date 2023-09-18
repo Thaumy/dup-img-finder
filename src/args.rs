@@ -13,5 +13,5 @@ pub struct Args {
 
     /// Number of threads used to calculate
     #[arg(short, long)]
-    pub threads: Option<usize>
+    pub threads: Option<usize>,
 }

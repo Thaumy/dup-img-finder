@@ -8,13 +8,10 @@ use colored::Colorize;
 
 pub fn symlink_dup_files(
     output_path: &str,
-    dup_img_hash_paths: &HashMap<Box<[u8]>, Vec<String>>
+    dup_img_hash_paths: &HashMap<Box<[u8]>, Vec<String>>,
 ) -> Result<()> {
     let mut group_mark = '░';
-    let count_align = dup_img_hash_paths
-        .len()
-        .to_string()
-        .len();
+    let count_align = dup_img_hash_paths.len().to_string().len();
     let mut dup_count = 0_usize;
 
     if dup_img_hash_paths.is_empty() {

@@ -33,9 +33,7 @@ fn main() -> Result<()> {
 
     let input_path: String = args.input_path;
     let output_path: String = args.output_path;
-    let threads: usize = args
-        .threads
-        .unwrap_or_else(num_cpus::get);
+    let threads: usize = args.threads.unwrap_or_else(num_cpus::get);
 
     let img_paths = {
         let mut img_paths = HashSet::new();
@@ -52,16 +50,13 @@ fn main() -> Result<()> {
             &mut img_paths,
             Path::new(&input_path),
             &ignore_abs_paths,
-            &ignore_path_regexes
+            &ignore_path_regexes,
         )?;
         {
-            let sq = img_paths.into_iter().fold(
-                SegQueue::new(),
-                |acc, it| {
-                    acc.push(it);
-                    acc
-                }
-            );
+            let sq = img_paths.into_iter().fold(SegQueue::new(), |acc, it| {
+                acc.push(it);
+                acc
+            });
             Arc::new(sq)
         }
     };
@@ -78,12 +73,8 @@ fn main() -> Result<()> {
 
         let worker = thread::spawn(move || {
             while let Some(img_path) = img_paths.pop() {
-                let calc_img_count = calc_img_count
-                    .fetch_add(1, Ordering::SeqCst)
-                    as f64;
-                let percent = (calc_img_count / total_img_count *
-                    100.0)
-                    .round() as usize;
+                let calc_img_count = calc_img_count.fetch_add(1, Ordering::SeqCst) as f64;
+                let percent = (calc_img_count / total_img_count * 100.0).round() as usize;
                 calc_img_hash(percent, img_path, &img_hash_result_tx);
             }
         });
@@ -98,22 +89,17 @@ fn main() -> Result<()> {
 
         for result in img_hash_result_rx {
             match result {
-                Ok((hash, path)) => (*img_hash_map
-                    .entry(hash)
-                    .or_insert(vec![]))
-                .push(path),
-                Err(msg) => err_img_paths.push(msg)
+                Ok((hash, path)) => (*img_hash_map.entry(hash).or_insert(vec![])).push(path),
+                Err(msg) => err_img_paths.push(msg),
             }
         }
         img_hash_map.retain(|_, vec| vec.len() > 1);
 
         (img_hash_map, err_img_paths)
     };
-    workers
-        .into_iter()
-        .for_each(|worker| {
-            worker.join().unwrap();
-        });
+    workers.into_iter().for_each(|worker| {
+        worker.join().unwrap();
+    });
 
     println!();
 

@@ -10,13 +10,13 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub ignore: Ignore
+    pub ignore: Ignore,
 }
 
 #[derive(Deserialize)]
 pub struct Ignore {
     pub abs_path: HashSet<String>,
-    pub regex: HashSet<String>
+    pub regex: HashSet<String>,
 }
 
 const DEFAULT_CFG: &str = r#"[ignore]
@@ -26,8 +26,7 @@ regex = []
 
 impl Config {
     pub fn read() -> Result<Self> {
-        let home_path = home_dir()
-            .ok_or_else(|| anyhow!("Can not get home dir"))?;
+        let home_path = home_dir().ok_or_else(|| anyhow!("Can not get home dir"))?;
 
         let cfg_path = home_path.join("dif.toml");
 
