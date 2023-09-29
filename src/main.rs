@@ -46,12 +46,14 @@ fn main() -> Result<()> {
             .into_iter()
             .map(|s| Regex::new(&s).unwrap())
             .collect();
+
         find_img(
             &mut img_paths,
             Path::new(&input_path),
             &ignore_abs_paths,
             &ignore_path_regexes,
         )?;
+
         {
             let sq = img_paths.into_iter().fold(SegQueue::new(), |acc, it| {
                 acc.push(it);
@@ -67,15 +69,17 @@ fn main() -> Result<()> {
 
     let mut workers = vec![];
     for _ in 0..threads {
-        let img_paths = img_paths.clone();
-        let img_hash_result_tx = img_hash_result_tx.clone();
-        let calc_img_count = calc_img_count.clone();
+        let worker = thread::spawn({
+            let img_paths = img_paths.clone();
+            let img_hash_result_tx = img_hash_result_tx.clone();
+            let calc_img_count = calc_img_count.clone();
 
-        let worker = thread::spawn(move || {
-            while let Some(img_path) = img_paths.pop() {
-                let calc_img_count = calc_img_count.fetch_add(1, Ordering::SeqCst) as f64;
-                let percent = (calc_img_count / total_img_count * 100.0).round() as usize;
-                calc_img_hash(percent, img_path, &img_hash_result_tx);
+            move || {
+                while let Some(img_path) = img_paths.pop() {
+                    let calc_img_count = calc_img_count.fetch_add(1, Ordering::SeqCst) as f64;
+                    let percent = (calc_img_count / total_img_count * 100.0).round() as usize;
+                    calc_img_hash(percent, img_path, &img_hash_result_tx);
+                }
             }
         });
 
