@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
@@ -7,7 +7,6 @@ use anyhow::Result;
 use colored::Colorize;
 use regex::Regex;
 
-#[inline]
 fn is_img_ext(ext: OsString) -> bool {
     let supported_format = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
     supported_format
@@ -16,9 +15,9 @@ fn is_img_ext(ext: OsString) -> bool {
 }
 
 pub fn find_img(
-    img_paths: &mut HashSet<String>,
+    img_paths: &mut BTreeSet<String>,
     root_path: &Path,
-    ignore_abs_paths: &HashSet<String>,
+    ignore_abs_paths: &BTreeSet<String>,
     ignore_path_regexes: &Vec<Regex>,
 ) -> Result<()> {
     if ignore_abs_paths.contains(root_path.to_str().unwrap()) {

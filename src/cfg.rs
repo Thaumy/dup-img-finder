@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -15,8 +15,8 @@ pub struct Config {
 
 #[derive(Deserialize)]
 pub struct Ignore {
-    pub abs_path: HashSet<String>,
-    pub regex: HashSet<String>,
+    pub abs_path: BTreeSet<String>,
+    pub regex: BTreeSet<String>,
 }
 
 const DEFAULT_CFG: &str = r#"[ignore]

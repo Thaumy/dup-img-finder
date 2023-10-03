@@ -1,3 +1,4 @@
+#![feature(try_blocks)]
 #![warn(clippy::all, clippy::nursery, clippy::cargo_common_metadata)]
 
 mod args;
@@ -5,11 +6,11 @@ mod calc_img_hash;
 mod cfg;
 mod find_img;
 mod fmt_path_for_display;
-mod read_img;
+mod read_file;
 mod symlink_dup_files;
 mod symlink_err_files;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
@@ -19,6 +20,7 @@ use std::{thread, vec};
 use anyhow::Result;
 use clap::Parser;
 use crossbeam::queue::SegQueue;
+use image_hasher::{Hasher, HasherConfig};
 use regex::Regex;
 
 use crate::args::Args;
@@ -33,10 +35,10 @@ fn main() -> Result<()> {
 
     let input_path: String = args.input_path;
     let output_path: String = args.output_path;
-    let threads: usize = args.threads.unwrap_or_else(num_cpus::get);
+    let thread_count: usize = args.threads.unwrap_or_else(num_cpus::get);
 
     let img_paths = {
-        let mut img_paths = HashSet::new();
+        let mut img_paths = BTreeSet::new();
 
         let cfg = Config::read()?;
         let ignore_abs_paths = cfg.ignore.abs_path;
@@ -67,9 +69,11 @@ fn main() -> Result<()> {
     let total_img_count = img_paths.len() as f64;
     let calc_img_count = Arc::new(AtomicUsize::new(0));
 
-    let mut workers = vec![];
-    for _ in 0..threads {
-        let worker = thread::spawn({
+    let hasher: &Hasher = Box::leak(Box::new(HasherConfig::new().to_hasher()));
+
+    let mut handles = vec![];
+    for _ in 0..thread_count {
+        let handle = thread::spawn({
             let img_paths = img_paths.clone();
             let img_hash_result_tx = img_hash_result_tx.clone();
             let calc_img_count = calc_img_count.clone();
@@ -78,14 +82,18 @@ fn main() -> Result<()> {
                 while let Some(img_path) = img_paths.pop() {
                     let calc_img_count = calc_img_count.fetch_add(1, Ordering::SeqCst) as f64;
                     let percent = (calc_img_count / total_img_count * 100.0).round() as usize;
-                    calc_img_hash(percent, img_path, &img_hash_result_tx);
+                    calc_img_hash(percent, hasher, img_path, &img_hash_result_tx);
                 }
             }
         });
 
-        workers.push(worker);
+        handles.push(handle);
     }
     drop(img_hash_result_tx);
+
+    handles.into_iter().for_each(|worker| {
+        worker.join().unwrap();
+    });
 
     let (dup_img_hash_paths, err_img_paths) = {
         let mut err_img_paths = vec![];
@@ -101,9 +109,6 @@ fn main() -> Result<()> {
 
         (img_hash_map, err_img_paths)
     };
-    workers.into_iter().for_each(|worker| {
-        worker.join().unwrap();
-    });
 
     println!();
 
