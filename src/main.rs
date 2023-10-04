@@ -14,13 +14,12 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
-use std::sync::Arc;
 use std::{thread, vec};
 
 use anyhow::Result;
 use clap::Parser;
 use crossbeam::queue::SegQueue;
-use image_hasher::{Hasher, HasherConfig};
+use image_hasher::HasherConfig;
 use regex::Regex;
 
 use crate::args::Args;
@@ -33,11 +32,11 @@ use crate::symlink_err_files::symlink_err_files;
 fn main() -> Result<()> {
     let args: Args = Args::parse();
 
-    let input_path: String = args.input_path;
-    let output_path: String = args.output_path;
-    let thread_count: usize = args.threads.unwrap_or_else(num_cpus::get);
+    let input_path = args.input_path;
+    let output_path = args.output_path;
+    let thread_count = args.threads.unwrap_or_else(num_cpus::get);
 
-    let img_paths = {
+    let img_paths = &{
         let mut img_paths = BTreeSet::new();
 
         let cfg = Config::read()?;
@@ -56,46 +55,34 @@ fn main() -> Result<()> {
             &ignore_path_regexes,
         )?;
 
-        {
-            let sq = img_paths.into_iter().fold(SegQueue::new(), |acc, it| {
-                acc.push(it);
-                acc
-            });
-            Arc::new(sq)
-        }
+        img_paths.into_iter().fold(SegQueue::new(), |acc, it| {
+            acc.push(it);
+            acc
+        })
     };
 
     let (img_hash_result_tx, img_hash_result_rx) = channel();
     let total_img_count = img_paths.len() as f64;
-    let calc_img_count = Arc::new(AtomicUsize::new(0));
+    let calc_img_count = &AtomicUsize::new(0);
 
-    let hasher: &Hasher = Box::leak(Box::new(HasherConfig::new().to_hasher()));
+    let hasher = &HasherConfig::new().to_hasher();
 
-    let mut handles = vec![];
-    for _ in 0..thread_count {
-        let handle = thread::spawn({
-            let img_paths = img_paths.clone();
-            let img_hash_result_tx = img_hash_result_tx.clone();
-            let calc_img_count = calc_img_count.clone();
+    let (dup_img_hash_paths, err_img_paths) = thread::scope(|s| {
+        for _ in 0..thread_count {
+            s.spawn({
+                let img_hash_result_tx = img_hash_result_tx.clone();
 
-            move || {
-                while let Some(img_path) = img_paths.pop() {
-                    let calc_img_count = calc_img_count.fetch_add(1, Ordering::SeqCst) as f64;
-                    let percent = (calc_img_count / total_img_count * 100.0).round() as usize;
-                    calc_img_hash(percent, hasher, img_path, &img_hash_result_tx);
+                move || {
+                    while let Some(img_path) = img_paths.pop() {
+                        let calc_img_count = calc_img_count.fetch_add(1, Ordering::SeqCst) as f64;
+                        let percent = (calc_img_count / total_img_count * 100.0).round() as usize;
+                        calc_img_hash(percent, hasher, img_path, &img_hash_result_tx);
+                    }
                 }
-            }
-        });
+            });
+        }
+        drop(img_hash_result_tx);
 
-        handles.push(handle);
-    }
-    drop(img_hash_result_tx);
-
-    handles.into_iter().for_each(|worker| {
-        worker.join().unwrap();
-    });
-
-    let (dup_img_hash_paths, err_img_paths) = {
         let mut err_img_paths = vec![];
         let mut img_hash_map = HashMap::new();
 
@@ -108,7 +95,7 @@ fn main() -> Result<()> {
         img_hash_map.retain(|_, vec| vec.len() > 1);
 
         (img_hash_map, err_img_paths)
-    };
+    });
 
     println!();
 
