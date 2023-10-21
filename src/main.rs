@@ -1,12 +1,11 @@
 #![feature(try_blocks)]
 #![warn(clippy::all, clippy::nursery, clippy::cargo_common_metadata)]
 
-mod args;
 mod calc_img_hash;
-mod cfg;
 mod fmt_path_for_display;
 mod get_img_paths;
 mod read_file;
+mod settings;
 mod symlink_dup_files;
 mod symlink_err_files;
 
@@ -19,10 +18,10 @@ use anyhow::Result;
 use clap::Parser;
 use image_hasher::HasherConfig;
 
-use crate::args::Args;
 use crate::calc_img_hash::calc_img_hash;
-use crate::cfg::Config;
 use crate::get_img_paths::get_img_paths;
+use crate::settings::args::Args;
+use crate::settings::cfg::Config;
 use crate::symlink_dup_files::symlink_dup_files;
 use crate::symlink_err_files::symlink_err_files;
 
