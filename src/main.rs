@@ -9,7 +9,7 @@ mod settings;
 mod symlink_dup_files;
 mod symlink_err_files;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
 use std::{thread, vec};
@@ -54,7 +54,7 @@ fn main() -> Result<()> {
         drop(img_hash_result_tx);
 
         let mut err_img_paths = vec![];
-        let mut img_hash_map = HashMap::new();
+        let mut img_hash_map = BTreeMap::new();
 
         for result in img_hash_result_rx {
             match result {
@@ -69,9 +69,13 @@ fn main() -> Result<()> {
 
     println!();
 
-    let output_path = args.output_path;
-    symlink_err_files(&output_path, err_img_paths.as_slice())?;
-    symlink_dup_files(&output_path, &dup_img_hash_paths)?;
+    symlink_err_files(&args.output_path, err_img_paths.as_slice())?;
+    symlink_dup_files(
+        &args.output_path,
+        dup_img_hash_paths
+            .iter()
+            .map(|x| (x.0.as_ref(), x.1.as_slice())),
+    )?;
 
     Ok(())
 }

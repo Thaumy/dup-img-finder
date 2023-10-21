@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs;
 use std::ops::ControlFlow;
 use std::os::unix::fs::symlink as unix_symlink;
@@ -6,15 +5,15 @@ use std::os::unix::fs::symlink as unix_symlink;
 use anyhow::Result;
 use colored::Colorize;
 
-pub fn symlink_dup_files(
+pub fn symlink_dup_files<'t>(
     output_path: &str,
-    dup_img_hash_paths: &HashMap<Box<[u8]>, Vec<String>>,
+    dup_img_hash_paths: impl ExactSizeIterator<Item = (&'t [u8], &'t [String])>,
 ) -> Result<()> {
     let mut group_mark = '░';
     let count_align = dup_img_hash_paths.len().to_string().len();
     let mut dup_count = 0_usize;
 
-    if dup_img_hash_paths.is_empty() {
+    if dup_img_hash_paths.len() == 0 {
         println!("No duplicate images found");
         return Ok(());
     }
@@ -22,7 +21,6 @@ pub fn symlink_dup_files(
     fs::create_dir_all(format!("{}/dup", output_path))?;
     println!("{} Duplicate images:", "[DUP]".yellow());
     dup_img_hash_paths
-        .iter()
         .filter(|(_, vec)| vec.len() > 1)
         .try_for_each(|(hash, vec)| {
             vec.iter().for_each(|path| {
@@ -30,7 +28,7 @@ pub fn symlink_dup_files(
                 let file_name = path.split('/').last().unwrap();
 
                 if let Err(e) = unix_symlink(
-                    path.as_str(),
+                    path,
                     format!("{}/dup/{}-{}-{}", output_path, base64_url::encode(hash), dup_count, file_name),
                 ) {
                     println!(
