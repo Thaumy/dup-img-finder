@@ -1,13 +1,14 @@
 use std::os::unix::fs::symlink as unix_symlink;
 use std::{env, fs};
 
+use crate::infra::result::WrapResult;
 use anyhow::Result;
 use colored::Colorize;
 
 pub fn symlink_err_files(output_path: &str, err_img_paths: &[String]) -> Result<()> {
     let mut err_count = 0_usize;
     if err_img_paths.is_empty() {
-        return Ok(());
+        return ().wrap_ok();
     }
     fs::create_dir_all(format!("{}/err", output_path))?;
     println!("{} Image format errors:", "[ERR]".red());
@@ -34,5 +35,5 @@ pub fn symlink_err_files(output_path: &str, err_img_paths: &[String]) -> Result<
     );
     println!();
 
-    Ok(())
+    ().wrap_ok()
 }

@@ -3,6 +3,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
 
+use crate::infra::result::WrapResult;
 use crate::settings::cfg::Config;
 use anyhow::Result;
 use colored::Colorize;
@@ -23,18 +24,18 @@ fn find_img(
     ignore_path_regexes: &Vec<Regex>,
 ) -> Result<()> {
     if ignore_abs_paths.contains(root_path.to_str().unwrap()) {
-        return Ok(());
+        return ().wrap_ok();
     }
     if ignore_path_regexes
         .iter()
         .any(|r| r.is_match(root_path.to_str().unwrap()))
     {
-        return Ok(());
+        return ().wrap_ok();
     }
 
     // ignore symlink
     if root_path.is_symlink() {
-        return Ok(());
+        return ().wrap_ok();
     }
 
     for entry in fs::read_dir(root_path)? {
@@ -66,7 +67,7 @@ fn find_img(
         }
     }
 
-    Ok(())
+    ().wrap_ok()
 }
 
 pub fn get_img_paths(cfg: Config, root_path: impl AsRef<Path>) -> Result<SegQueue<String>> {
@@ -87,10 +88,11 @@ pub fn get_img_paths(cfg: Config, root_path: impl AsRef<Path>) -> Result<SegQueu
         &ignore_path_regexes,
     )?;
 
-    let img_paths = img_paths.into_iter().fold(SegQueue::new(), |acc, it| {
-        acc.push(it);
-        acc
-    });
-
-    Ok(img_paths)
+    img_paths
+        .into_iter()
+        .fold(SegQueue::new(), |acc, it| {
+            acc.push(it);
+            acc
+        })
+        .wrap_ok()
 }

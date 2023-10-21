@@ -6,6 +6,7 @@ use image::DynamicImage;
 use image_hasher::Hasher;
 
 use crate::fmt_path_for_display::fmt_path_for_display;
+use crate::infra::result::WrapResult;
 use crate::read_file::read_file;
 
 #[allow(clippy::type_complexity)]
@@ -22,7 +23,7 @@ pub fn calc_img_hash(
         Ok(img) => {
             println!("{} {:>3}% {}", "[CALC]".cyan(), percent, display_path);
             let hash = Box::from(hasher.hash_image(&img).as_bytes());
-            Ok((hash, img_path))
+            (hash, img_path).wrap_ok()
         }
         Err(e) => {
             println!(
@@ -32,7 +33,7 @@ pub fn calc_img_hash(
                 img_path,
                 e
             );
-            Err(img_path)
+            img_path.wrap_err()
         }
     };
 

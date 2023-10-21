@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::Write;
 use std::ops::Not;
 
+use crate::infra::result::WrapResult;
 use anyhow::{anyhow, Result};
 use home::home_dir;
 use serde::Deserialize;
@@ -37,8 +38,6 @@ impl Config {
 
         let cfg_path = fs::read_to_string(cfg_path)?;
 
-        let cfg: Self = toml::from_str(&cfg_path).unwrap();
-
-        Ok(cfg)
+        toml::from_str::<Self>(&cfg_path).unwrap().wrap_ok()
     }
 }

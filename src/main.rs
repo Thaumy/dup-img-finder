@@ -4,6 +4,7 @@
 mod calc_img_hash;
 mod fmt_path_for_display;
 mod get_img_paths;
+mod infra;
 mod read_file;
 mod settings;
 mod symlink_dup_files;
@@ -20,6 +21,7 @@ use image_hasher::HasherConfig;
 
 use crate::calc_img_hash::calc_img_hash;
 use crate::get_img_paths::get_img_paths;
+use crate::infra::result::WrapResult;
 use crate::settings::args::Args;
 use crate::settings::cfg::Config;
 use crate::symlink_dup_files::symlink_dup_files;
@@ -77,5 +79,5 @@ fn main() -> Result<()> {
             .map(|x| (x.0.as_ref(), x.1.as_slice())),
     )?;
 
-    Ok(())
+    ().wrap_ok()
 }
