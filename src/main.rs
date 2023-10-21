@@ -4,63 +4,34 @@
 mod args;
 mod calc_img_hash;
 mod cfg;
-mod find_img;
 mod fmt_path_for_display;
+mod get_img_paths;
 mod read_file;
 mod symlink_dup_files;
 mod symlink_err_files;
 
-use std::collections::{BTreeSet, HashMap};
-use std::path::Path;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::channel;
 use std::{thread, vec};
 
 use anyhow::Result;
 use clap::Parser;
-use crossbeam::queue::SegQueue;
 use image_hasher::HasherConfig;
-use regex::Regex;
 
 use crate::args::Args;
 use crate::calc_img_hash::calc_img_hash;
 use crate::cfg::Config;
-use crate::find_img::find_img;
+use crate::get_img_paths::get_img_paths;
 use crate::symlink_dup_files::symlink_dup_files;
 use crate::symlink_err_files::symlink_err_files;
 
 fn main() -> Result<()> {
     let args: Args = Args::parse();
 
-    let input_path = args.input_path;
-    let output_path = args.output_path;
     let thread_count = args.threads.unwrap_or_else(num_cpus::get);
 
-    let img_paths = &{
-        let mut img_paths = BTreeSet::new();
-
-        let cfg = Config::read()?;
-        let ignore_abs_paths = cfg.ignore.abs_path;
-        let ignore_path_regexes = cfg
-            .ignore
-            .regex
-            .into_iter()
-            .map(|s| Regex::new(&s).unwrap())
-            .collect();
-
-        find_img(
-            &mut img_paths,
-            Path::new(&input_path),
-            &ignore_abs_paths,
-            &ignore_path_regexes,
-        )?;
-
-        img_paths.into_iter().fold(SegQueue::new(), |acc, it| {
-            acc.push(it);
-            acc
-        })
-    };
-
+    let img_paths = &get_img_paths(Config::read()?, args.input_path)?;
     let (img_hash_result_tx, img_hash_result_rx) = channel();
     let total_img_count = img_paths.len() as f64;
     let calc_img_count = &AtomicUsize::new(0);
@@ -99,6 +70,7 @@ fn main() -> Result<()> {
 
     println!();
 
+    let output_path = args.output_path;
     symlink_err_files(&output_path, err_img_paths.as_slice())?;
     symlink_dup_files(&output_path, &dup_img_hash_paths)?;
 

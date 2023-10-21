@@ -3,8 +3,10 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
 
+use crate::cfg::Config;
 use anyhow::Result;
 use colored::Colorize;
+use crossbeam::queue::SegQueue;
 use regex::Regex;
 
 fn is_img_ext(ext: OsString) -> bool {
@@ -14,7 +16,7 @@ fn is_img_ext(ext: OsString) -> bool {
         .any(|format| ext == OsStr::new(format))
 }
 
-pub fn find_img(
+fn find_img(
     img_paths: &mut BTreeSet<String>,
     root_path: &Path,
     ignore_abs_paths: &BTreeSet<String>,
@@ -65,4 +67,30 @@ pub fn find_img(
     }
 
     Ok(())
+}
+
+pub fn get_img_paths(cfg: Config, root_path: impl AsRef<Path>) -> Result<SegQueue<String>> {
+    let mut img_paths = BTreeSet::new();
+
+    let ignore_abs_paths = cfg.ignore.abs_path;
+    let ignore_path_regexes = cfg
+        .ignore
+        .regex
+        .into_iter()
+        .map(|s| Regex::new(&s).unwrap())
+        .collect();
+
+    find_img(
+        &mut img_paths,
+        root_path.as_ref(),
+        &ignore_abs_paths,
+        &ignore_path_regexes,
+    )?;
+
+    let img_paths = img_paths.into_iter().fold(SegQueue::new(), |acc, it| {
+        acc.push(it);
+        acc
+    });
+
+    Ok(img_paths)
 }
