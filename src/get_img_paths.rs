@@ -23,12 +23,12 @@ fn find_img(
     ignore_abs_paths: &BTreeSet<String>,
     ignore_path_regexes: &Vec<Regex>,
 ) -> Result<()> {
-    if ignore_abs_paths.contains(root_path.to_str().unwrap()) {
+    if ignore_abs_paths.contains(root_path.to_str().expect("Failed to get root path")) {
         return ().wrap_ok();
     }
     if ignore_path_regexes
         .iter()
-        .any(|r| r.is_match(root_path.to_str().unwrap()))
+        .any(|r| r.is_match(root_path.to_str().expect("Failed to get root path")))
     {
         return ().wrap_ok();
     }
@@ -78,7 +78,7 @@ pub fn get_img_paths(cfg: Config, root_path: impl AsRef<Path>) -> Result<SegQueu
         .ignore
         .regex
         .into_iter()
-        .map(|s| Regex::new(&s).unwrap())
+        .map(|s| Regex::new(&s).expect("Failed to build regex"))
         .collect();
 
     find_img(

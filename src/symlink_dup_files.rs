@@ -26,7 +26,7 @@ pub fn symlink_dup_files<'t>(
         .try_for_each(|(hash, vec)| {
             vec.iter().for_each(|path| {
                 println!("{dup_count:>count_align$} {group_mark} {}", path);
-                let file_name = path.split('/').last().unwrap();
+                let file_name = path.split('/').last().expect("Failed to get file name");
 
                 if let Err(e) = unix_symlink(
                     path,

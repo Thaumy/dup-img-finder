@@ -38,6 +38,8 @@ impl Config {
 
         let cfg_path = fs::read_to_string(cfg_path)?;
 
-        toml::from_str::<Self>(&cfg_path).unwrap().wrap_ok()
+        toml::from_str::<Self>(&cfg_path)
+            .expect("Failed to parse config")
+            .wrap_ok()
     }
 }
