@@ -24,6 +24,7 @@ crossbeam = "0.8.2"
 base64-url = "2.0.0"
 clap = { version = "4.4.3", features = ["derive"] }
 home = "0.5.5"
+unicode-width = "0.1.11"
 toml = "0.8.1"
 serde = "1.0.188"
 regex = "1.9.5"
