@@ -26,6 +26,7 @@ clap = { version = "4.4.3", features = ["derive"] }
 home = "0.5.5"
 unicode-width = "0.1.11"
 toml = "0.8.1"
+tokio-uring = "0.4.0"
 serde = "1.0.188"
 regex = "1.9.5"
 terminal_size = "0.3.0"

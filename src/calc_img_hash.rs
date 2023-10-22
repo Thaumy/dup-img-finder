@@ -1,41 +1,12 @@
-use std::sync::mpsc::Sender;
-
 use anyhow::Result;
-use colored::Colorize;
-use image::DynamicImage;
 use image_hasher::Hasher;
 
-use crate::fmt_path_for_display::fmt_path_for_display;
 use crate::infra::result::WrapResult;
-use crate::read_file::read_file;
 
 #[allow(clippy::type_complexity)]
-pub fn calc_img_hash(
-    percent: usize,
-    hasher: &Hasher,
-    img_path: String,
-    img_hash_result_tx: &Sender<Result<(Box<[u8]>, String), String>>,
-) {
-    let display_path = fmt_path_for_display(&img_path, 12);
-    let img_data: Result<DynamicImage> =
-        try { image::load_from_memory(&read_file(percent, &img_path)?[..])? };
-    let result = match img_data {
-        Ok(img) => {
-            println!("{} {:>3}% {}", "[CALC]".cyan(), percent, display_path);
-            let hash = Box::from(hasher.hash_image(&img).as_bytes());
-            (hash, img_path).wrap_ok()
-        }
-        Err(e) => {
-            println!(
-                "{} {:>3}% Failed to open image: {} [{}]",
-                "[ERR]".red(),
-                percent,
-                img_path,
-                e
-            );
-            img_path.wrap_err()
-        }
-    };
-
-    img_hash_result_tx.send(result).unwrap()
+pub fn calc_img_hash(hasher: &Hasher, img_bytes: Result<Vec<u8>>) -> Result<Box<[u8]>> {
+    let di = image::load_from_memory(&img_bytes?[..])?;
+    let ih = hasher.hash_image(&di);
+    let hash = Box::<[u8]>::from(ih.as_bytes());
+    hash.wrap_ok()
 }
