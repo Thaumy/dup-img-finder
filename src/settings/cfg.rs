@@ -3,6 +3,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::ops::Not;
+use std::path::PathBuf;
 
 use crate::infra::result::WrapResult;
 use anyhow::{anyhow, Result};
@@ -25,11 +26,18 @@ abs_path = []
 regex = []
 "#;
 
+fn get_cfg_path() -> Result<PathBuf> {
+    let home_path = home_dir().ok_or_else(|| anyhow!("Can not get home dir"))?;
+
+    Ok(home_path
+        .join(".config")
+        .join("dup-img-finder")
+        .join("cfg.toml"))
+}
+
 impl Config {
     pub fn read() -> Result<Self> {
-        let home_path = home_dir().ok_or_else(|| anyhow!("Can not get home dir"))?;
-
-        let cfg_path = home_path.join("dif.toml");
+        let cfg_path = get_cfg_path()?;
 
         if cfg_path.exists().not() {
             let mut f = File::create(cfg_path.clone())?;
