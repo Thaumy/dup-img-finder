@@ -5,7 +5,7 @@ use std::io::Write;
 use std::ops::Not;
 use std::path::PathBuf;
 
-use crate::infra::result::WrapResult;
+use crate::infra::WrapResult;
 use anyhow::{anyhow, Result};
 use home::home_dir;
 use serde::Deserialize;

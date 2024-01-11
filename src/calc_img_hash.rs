@@ -6,7 +6,7 @@ use image::DynamicImage;
 use image_hasher::Hasher;
 
 use crate::fmt_path_for_display::fmt_path_for_display;
-use crate::infra::result::WrapResult;
+use crate::infra::WrapResult;
 use crate::read_file::read_file;
 
 #[allow(clippy::type_complexity)]

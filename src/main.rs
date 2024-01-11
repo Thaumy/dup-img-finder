@@ -21,7 +21,7 @@ use image_hasher::HasherConfig;
 
 use crate::calc_img_hash::calc_img_hash;
 use crate::get_img_paths::get_img_paths;
-use crate::infra::result::WrapResult;
+use crate::infra::WrapResult;
 use crate::settings::args::Args;
 use crate::settings::cfg::Config;
 use crate::symlink_dup_files::symlink_dup_files;

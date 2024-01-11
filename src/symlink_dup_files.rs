@@ -2,7 +2,7 @@ use std::fs;
 use std::ops::ControlFlow;
 use std::os::unix::fs::symlink as unix_symlink;
 
-use crate::infra::result::WrapResult;
+use crate::infra::WrapResult;
 use anyhow::Result;
 use colored::Colorize;
 

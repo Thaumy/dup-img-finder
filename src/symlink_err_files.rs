@@ -1,7 +1,7 @@
 use std::os::unix::fs::symlink as unix_symlink;
 use std::{env, fs};
 
-use crate::infra::result::WrapResult;
+use crate::infra::WrapResult;
 use anyhow::Result;
 use colored::Colorize;
 

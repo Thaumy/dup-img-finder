@@ -3,7 +3,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
 
-use crate::infra::result::WrapResult;
+use crate::infra::WrapResult;
 use crate::settings::cfg::Config;
 use anyhow::Result;
 use colored::Colorize;
