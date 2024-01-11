@@ -4,14 +4,17 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     /// Input directory of searching root
-    #[arg(short, long)]
+    #[clap(short = 'i')]
+    #[arg(long)]
     pub input_path: String,
 
     /// Output directory of checking results
-    #[arg(short, long)]
+    #[clap(short = 'o')]
+    #[arg(long)]
     pub output_path: String,
 
     /// Number of threads used to calculate
-    #[arg(short, long)]
+    #[clap(short = 't')]
+    #[arg(long)]
     pub threads: Option<usize>,
 }
