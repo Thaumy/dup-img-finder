@@ -14,20 +14,19 @@ strip = true
 codegen-units = 1
 
 [dependencies]
-anyhow = "1.0.75"
-image-compare = "0.3.0"
+anyhow = "1.0.79"
 image = "0.24.7"
 image_hasher = "1.2.0"
-colored = "2.0.4"
+colored = "2.1.0"
 num_cpus = "1.16.0"
-crossbeam = "0.8.2"
-base64-url = "2.0.0"
-clap = { version = "4.4.3", features = ["derive"] }
-home = "0.5.5"
+crossbeam = "0.8.4"
+base64-url = "2.0.2"
+clap = { version = "4.4.14", features = ["derive"] }
+home = "0.5.9"
 unicode-width = "0.1.11"
-toml = "0.8.1"
-serde = "1.0.188"
-regex = "1.9.5"
+toml = "0.8.8"
+serde = "1.0.195"
+regex = "1.10.2"
 terminal_size = "0.3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
