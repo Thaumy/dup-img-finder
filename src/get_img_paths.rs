@@ -23,12 +23,12 @@ fn find_img(
     ignore_abs_paths: &BTreeSet<String>,
     ignore_path_regexes: &Vec<Regex>,
 ) -> Result<()> {
-    if ignore_abs_paths.contains(root_path.to_str().expect("Failed to get root path")) {
+    if ignore_abs_paths.contains(root_path.to_str().expect("Non-UTF-8 paths")) {
         return ().wrap_ok();
     }
     if ignore_path_regexes
         .iter()
-        .any(|r| r.is_match(root_path.to_str().expect("Failed to get root path")))
+        .any(|r| r.is_match(root_path.to_str().expect("Non-UTF-8 paths")))
     {
         return ().wrap_ok();
     }
