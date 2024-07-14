@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::infra::WrapResult;
-use crate::settings::cfg::Config;
+use crate::settings::cfg::Ignore;
 use anyhow::Result;
 use colored::Colorize;
 use crossbeam::queue::SegQueue;
@@ -70,12 +70,11 @@ fn find_img(
     ().wrap_ok()
 }
 
-pub fn get_img_paths(cfg: Config, root_path: impl AsRef<Path>) -> Result<SegQueue<String>> {
+pub fn get_img_paths(ignore: Ignore, root_path: impl AsRef<Path>) -> Result<SegQueue<String>> {
     let mut img_paths = BTreeSet::new();
 
-    let ignore_abs_paths = cfg.ignore.abs_path;
-    let ignore_path_regexes = cfg
-        .ignore
+    let ignore_abs_paths = ignore.abs_path;
+    let ignore_path_regexes = ignore
         .regex
         .into_iter()
         .map(|s| Regex::new(&s).expect("Failed to build regex"))

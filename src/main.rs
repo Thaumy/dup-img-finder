@@ -38,7 +38,7 @@ fn main() -> Result<()> {
     let config = Config::read()?;
     let cache = Arc::new(Mutex::new(Cache::new(&config.cache)?));
 
-    let img_paths = &get_img_paths(config, args.input_path)?;
+    let img_paths = &get_img_paths(config.ignore, args.input_path)?;
     let (img_hash_result_tx, img_hash_result_rx) = channel();
     let total_img_count = img_paths.len() as f64;
     let calc_img_count = &AtomicUsize::new(0);
@@ -83,7 +83,7 @@ fn main() -> Result<()> {
         &args.output_path,
         dup_img_hash_paths
             .iter()
-            .map(|x| (x.0.as_ref(), x.1.as_slice())),
+            .map(|(hash, paths)| (hash.as_ref(), paths.as_slice())),
     )?;
 
     ().wrap_ok()
