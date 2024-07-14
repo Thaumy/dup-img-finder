@@ -45,6 +45,16 @@ fn find_img(
             continue;
         }
 
+        if ignore_abs_paths.contains(path.to_str().expect("Non-UTF-8 paths")) {
+            continue;
+        }
+        if ignore_path_regexes
+            .iter()
+            .any(|r| r.is_match(path.to_str().expect("Non-UTF-8 paths")))
+        {
+            continue;
+        }
+
         if path
             .extension()
             .map(|ext| ext.to_ascii_lowercase())
