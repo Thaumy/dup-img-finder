@@ -36,7 +36,9 @@ fn main() -> Result<()> {
     let thread_count = args.threads.unwrap_or_else(num_cpus::get);
 
     let config = Config::read()?;
-    let cache = Arc::new(Mutex::new(Cache::new(&config.cache)?));
+    let cache = Cache::new(&config.cache)?;
+    cache.gc();
+    let cache = Arc::new(Mutex::new(cache));
 
     let img_paths = &get_img_paths(config.ignore, args.input_path)?;
     let (img_hash_result_tx, img_hash_result_rx) = channel();

@@ -1,7 +1,13 @@
+use std::fs;
+
 use anyhow::Result;
+use colored::Colorize;
 use sqlite::Connection;
 
-use crate::infra::{WrapOption, WrapResult};
+use crate::{
+    fmt_path_for_display::fmt_path_for_display,
+    infra::{WrapOption, WrapResult},
+};
 
 pub struct Cache {
     conn: Connection,
@@ -42,5 +48,37 @@ impl Cache {
         stmt.bind((2, hash)).expect("Failed to bind param");
         stmt.next()?;
         Ok(())
+    }
+
+    fn delete(&self, img_path: &str) -> Result<()> {
+        let stmt = "DELETE FROM hashes WHERE path = ?";
+        let mut stmt = self.conn.prepare(stmt).expect("Failed to prepare stmt");
+        stmt.bind((1, img_path)).expect("Failed to bind param");
+        stmt.next()?;
+        Ok(())
+    }
+
+    pub fn gc(&self) {
+        let stmt = "SELECT path FROM hashes";
+        let stmt = self.conn.prepare(stmt).expect("Failed to prepare stmt");
+        stmt.into_iter().for_each(|row| match row {
+            Ok(row) => {
+                let img_path = row.read("path");
+                if fs::metadata(img_path).is_err() {
+                    if let Err(e) = self.delete(img_path) {
+                        println!(
+                            "{} Failed to delete cache in database: {} [{}]",
+                            "[ERR]".red(),
+                            img_path,
+                            e
+                        );
+                    } else {
+                        let display_path = fmt_path_for_display(img_path, 10);
+                        println!("{} {}", "[GC]".blue(), display_path);
+                    }
+                }
+            }
+            Err(e) => println!("{} Failed to query cache in database: {}", "[ERR]".red(), e),
+        });
     }
 }
