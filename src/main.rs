@@ -45,7 +45,9 @@ fn main() -> Result<()> {
     let total_img_count = img_paths.len() as f64;
     let calc_img_count = &AtomicUsize::new(0);
 
-    let hasher = &HasherConfig::new().to_hasher();
+    let hasher_config = HasherConfig::new();
+    let hasher_config = hasher_config.hash_size(16, 16);
+    let hasher = &hasher_config.to_hasher();
 
     let (dup_img_hash_paths, err_img_paths) = thread::scope(|s| {
         for _ in 0..thread_count {
