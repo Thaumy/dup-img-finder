@@ -12,6 +12,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Config {
+    pub size: u32,
     pub cache: String,
     pub ignore: Ignore,
 }
@@ -22,7 +23,8 @@ pub struct Ignore {
     pub regex: BTreeSet<String>,
 }
 
-const DEFAULT_CFG: &str = r#"cache = "~/.config/dup-img-finder/cache.sqlite"
+const DEFAULT_CFG: &str = r#"size=8
+cache = "~/.config/dup-img-finder/cache.sqlite"
 
 [ignore]
 abs_path = []

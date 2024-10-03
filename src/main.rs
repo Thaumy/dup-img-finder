@@ -46,7 +46,7 @@ fn main() -> Result<()> {
     let calc_img_count = &AtomicUsize::new(0);
 
     let hasher_config = HasherConfig::new();
-    let hasher_config = hasher_config.hash_size(16, 16);
+    let hasher_config = hasher_config.hash_size(config.size, config.size);
     let hasher = &hasher_config.to_hasher();
 
     let (dup_img_hash_paths, err_img_paths) = thread::scope(|s| {
