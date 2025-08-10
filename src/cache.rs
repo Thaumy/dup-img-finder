@@ -4,10 +4,7 @@ use anyhow::Result;
 use colored::Colorize;
 use sqlite::Connection;
 
-use crate::{
-    fmt_path_for_display::fmt_path_for_display,
-    infra::{WrapOption, WrapResult},
-};
+use crate::fmt_path_for_display::fmt_path_for_display;
 
 pub struct Cache {
     conn: Connection,
@@ -23,7 +20,7 @@ impl Cache {
             );\
         ";
         conn.execute(init)?;
-        Self { conn }.wrap_ok()
+        Ok(Self { conn })
     }
 
     pub fn query(&self, img_path: &str) -> Result<Option<Box<[u8]>>> {
@@ -34,10 +31,10 @@ impl Cache {
         match row {
             Some(Ok(row)) => {
                 let hash: &[u8] = row.read("hash");
-                hash.to_vec().into_boxed_slice().wrap_some().wrap_ok()
+                Ok(Some(hash.to_vec().into_boxed_slice()))
             }
             Some(Err(e)) => Err(e)?,
-            _ => None.wrap_ok(),
+            _ => Ok(None),
         }
     }
 

@@ -2,7 +2,6 @@ use std::fs;
 use std::ops::ControlFlow;
 use std::os::unix::fs::symlink as unix_symlink;
 
-use crate::infra::WrapResult;
 use anyhow::Result;
 use colored::Colorize;
 
@@ -16,7 +15,7 @@ pub fn symlink_dup_files<'t>(
 
     if dup_img_hash_paths.len() == 0 {
         println!("No duplicate images found");
-        return ().wrap_ok();
+        return Ok(());
     }
 
     fs::create_dir_all(format!("{}/dup", output_path))?;
@@ -58,5 +57,5 @@ pub fn symlink_dup_files<'t>(
         output_path
     );
 
-    ().wrap_ok()
+    Ok(())
 }

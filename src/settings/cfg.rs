@@ -5,7 +5,6 @@ use std::io::Write;
 use std::ops::Not;
 use std::path::PathBuf;
 
-use crate::infra::WrapResult;
 use anyhow::{anyhow, Result};
 use home::home_dir;
 use serde::Deserialize;
@@ -50,9 +49,8 @@ impl Config {
         }
 
         let cfg_path = fs::read_to_string(cfg_path)?;
+        let cfg = toml::from_str::<Self>(&cfg_path).expect("Failed to parse config");
 
-        toml::from_str::<Self>(&cfg_path)
-            .expect("Failed to parse config")
-            .wrap_ok()
+        Ok(cfg)
     }
 }

@@ -8,7 +8,6 @@ use image_hasher::{HashBytes, Hasher};
 
 use crate::cache::Cache;
 use crate::fmt_path_for_display::fmt_path_for_display;
-use crate::infra::WrapResult;
 use crate::read_file::read_file;
 
 #[allow(clippy::type_complexity)]
@@ -30,7 +29,7 @@ pub fn calc_img_hash(
         match result {
             Ok(Some(hash)) => {
                 println!("{} {:>3}% {}", "[HIT]".green(), percent, display_path);
-                let result = (hash, img_path).wrap_ok();
+                let result = Ok((hash, img_path));
                 return img_hash_result_tx.send(result).unwrap();
             }
             Err(e) => {
@@ -41,7 +40,7 @@ pub fn calc_img_hash(
                     img_path,
                     e
                 );
-                return img_hash_result_tx.send(img_path.wrap_err()).unwrap();
+                return img_hash_result_tx.send(Err(img_path)).unwrap();
             }
             _ => (),
         };
@@ -67,7 +66,7 @@ pub fn calc_img_hash(
                     );
                 }
             }
-            (hash, img_path).wrap_ok()
+            Ok((hash, img_path))
         }
         Err(e) => {
             println!(
@@ -77,7 +76,7 @@ pub fn calc_img_hash(
                 img_path,
                 e
             );
-            img_path.wrap_err()
+            Err(img_path)
         }
     };
 
