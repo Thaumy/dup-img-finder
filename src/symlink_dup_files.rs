@@ -25,11 +25,15 @@ pub fn symlink_dup_files<'t>(
         .try_for_each(|(hash, vec)| {
             vec.iter().for_each(|path| {
                 println!("{dup_count:>count_align$} {group_mark} {}", path);
-                let file_name = path.split('/').last().expect("Failed to get file name");
+
+                let file_ext = Path::new(path)
+                    .extension()
+                    .expect("Failed to get file extension")
+                    .to_string_lossy();
 
                 if let Err(e) = unix_symlink(
                     path,
-                    format!("{}/dup/{}-{}-{}", output_path, base64_url::encode(hash), dup_count, file_name),
+                    format!("{}/dup/{}-{}.{}", output_path, base64_url::encode(hash), dup_count, file_ext),
                 ) {
                     println!(
                         "{dup_count:>count_align$} {group_mark} {} Failed to create symlink for: {} [{}]",
