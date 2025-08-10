@@ -1,4 +1,3 @@
-#![feature(try_blocks)]
 #![warn(clippy::all, clippy::nursery, clippy::cargo_common_metadata)]
 
 mod cache;

@@ -10,6 +10,12 @@ use crate::cache::Cache;
 use crate::fmt_path_for_display::fmt_path_for_display;
 use crate::read_file::read_file;
 
+fn read_img_data(percent: usize, img_path: &str) -> Result<DynamicImage> {
+    let img_data = read_file(percent, &img_path)?;
+    let img_data = &img_data[..];
+    Ok(image::load_from_memory(img_data)?)
+}
+
 #[allow(clippy::type_complexity)]
 pub fn calc_img_hash(
     cache: &Arc<Mutex<Cache>>,
@@ -46,10 +52,7 @@ pub fn calc_img_hash(
         };
     }
 
-    let img_data: Result<DynamicImage> =
-        try { image::load_from_memory(&read_file(percent, &img_path)?[..])? };
-
-    let result = match img_data {
+    let result = match read_img_data(percent, &img_path) {
         Ok(img) => {
             println!("{} {:>3}% {}", "[CALC]".cyan(), percent, display_path);
             let hash: Box<[u8]> = Box::from(hasher.hash_image(&img).as_bytes());
