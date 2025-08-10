@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     let hasher_config = hasher_config.hash_size(config.size, config.size);
     let hasher = &hasher_config.to_hasher();
 
-    let (dup_img_hash_paths, err_img_paths) = thread::scope(|s| {
+    let (mut dup_img_hash_paths, err_img_paths) = thread::scope(|s| {
         for _ in 0..thread_count {
             s.spawn({
                 let img_hash_result_tx = img_hash_result_tx.clone();
@@ -84,8 +84,8 @@ fn main() -> Result<()> {
     symlink_dup_files(
         &args.output_path,
         dup_img_hash_paths
-            .iter()
-            .map(|(hash, paths)| (hash.as_ref(), paths.as_slice())),
+            .iter_mut()
+            .map(|(hash, paths)| (hash.as_ref(), paths.as_mut_slice())),
     )?;
 
     Ok(())

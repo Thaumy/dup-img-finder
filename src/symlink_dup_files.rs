@@ -1,13 +1,14 @@
 use std::fs;
 use std::ops::ControlFlow;
-use std::os::unix::fs::symlink as unix_symlink;
+use std::os::unix::fs::{symlink as unix_symlink, MetadataExt};
+use std::path::Path;
 
 use anyhow::Result;
 use colored::Colorize;
 
 pub fn symlink_dup_files<'t>(
     output_path: &str,
-    dup_img_hash_paths: impl ExactSizeIterator<Item = (&'t [u8], &'t [String])>,
+    dup_img_hash_paths: impl ExactSizeIterator<Item = (&'t [u8], &'t mut [String])>,
 ) -> Result<()> {
     let mut group_mark = '░';
     let count_align = dup_img_hash_paths.len().to_string().len();
@@ -20,10 +21,25 @@ pub fn symlink_dup_files<'t>(
 
     fs::create_dir_all(format!("{}/dup", output_path))?;
     println!("{} Duplicate images:", "[DUP]".yellow());
+
     dup_img_hash_paths
         .filter(|(_, vec)| vec.len() > 1)
-        .try_for_each(|(hash, vec)| {
-            vec.iter().for_each(|path| {
+        .try_for_each(|(hash, slice)| {
+            slice.sort_by(|a, b| {
+                let meta_a = fs::metadata(a).expect("Failed to get metadata");
+                let meta_b = fs::metadata(b).expect("Failed to get metadata");
+                let size_a = meta_a.size();
+                let size_b = meta_b.size();
+                let mtime_a = meta_a.mtime();
+                let mtime_b = meta_b.mtime();
+                if size_a == size_b {
+                    mtime_a.cmp(&mtime_b).reverse()
+                } else {
+                    size_a.cmp(&size_b)
+                }
+            });
+
+            slice.iter().for_each(|path| {
                 println!("{dup_count:>count_align$} {group_mark} {}", path);
 
                 let file_ext = Path::new(path)
